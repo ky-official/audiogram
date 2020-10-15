@@ -1,7 +1,6 @@
 steps:
   - name: 'gcr.io/cloud-builders/mvn'
-    args: ['package']
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['app', 'deploy', '/workspace/src/main/appengine/app.yaml']
-    dir: "target"
-
+    args: ['clean', 'install', '-DskipTests']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/audiogram', '.']
+images: ['gcr.io/$PROJECT_ID/audiogram']
