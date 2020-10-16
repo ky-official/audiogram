@@ -24,7 +24,7 @@ sealed class AudioGramFileManager {
             val taskDirectory = File("$ROOT/tasks/task_$id")
             println(taskDirectory.absolutePath)
 
-            if (taskDirectory.mkdir()) {
+            if (taskDirectory.mkdirs()) {
                 println("New task directory created with id:$id")
                 val resourceDirectory = File("$ROOT/tasks/task_$id/resources")
                 val exportDirectory = File("$ROOT/tasks/task_$id/export")
@@ -49,7 +49,7 @@ sealed class AudioGramFileManager {
                 }
             } else {
                 println("Couldn't create task directory with id:$id")
-                throw AudioGramException("task exists")
+                throw AudioGramException("Couldn't create task directory with id:$id")
             }
         }
 
