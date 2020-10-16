@@ -18,7 +18,7 @@ import javax.servlet.http.Part
 sealed class AudioGramFileManager {
 
     companion object {
-        private const val ROOT = "appData"
+        private const val ROOT = "/tmp"
 
         fun createTaskDirectory(id: String) {
             val taskDirectory = File("$ROOT/tasks/task_$id")

@@ -56,7 +56,7 @@ class AudioGramRenderer {
                 if (trackProgress.roundToInt() != progress) {
                     println("task with id:${data.id} at $progress%")
                     progress = trackProgress.roundToInt()
-                    AudioGramDBManager.updateProgress(data.id, progress)
+                    // AudioGramDBManager.updateProgress(data.id, progress)
                 }
 
                 if (data.videoUrl != null) {
@@ -85,8 +85,8 @@ class AudioGramRenderer {
         writer.flush()
         Runtime.getRuntime().gc()
         System.gc()
-        AudioGramDBManager.updateProgress(data.id, 100)
-        AudioGramDBManager.updateStatus(data.id, "FINISHED")
+        // AudioGramDBManager.updateProgress(data.id, 100)
+        //  AudioGramDBManager.updateStatus(data.id, "FINISHED")
         println("writer closed")
 
     }

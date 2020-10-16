@@ -76,7 +76,7 @@ class AudioGramData {
             }
 
         }
-        AudioGramDBManager.addTask(this.id)
+        //AudioGramDBManager.addTask(this.id)
     }
 
 }
