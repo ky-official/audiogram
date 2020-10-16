@@ -36,7 +36,7 @@ class AudioGramData {
         data.forEach {
             if (it.name == "id") {
                 this.id = String(it.inputStream.readBytes())
-                AudioGramFileManager.createTaskDirectory(id)
+                //AudioGramFileManager.createTaskDirectory(id)
                 return@forEach
             }
         }
