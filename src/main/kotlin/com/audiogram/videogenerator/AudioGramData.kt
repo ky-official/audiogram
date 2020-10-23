@@ -65,7 +65,7 @@ class AudioGramData {
             if (it.name.substringBefore("_") == "text") {
                 val text = Gson().fromJson(String(it.inputStream.readBytes()), LemonText().javaClass)
                 this.texts.add(text)
-                // AudioGramRenderer.loadApplicationFonts()
+                AudioGramRenderer.loadApplicationFonts()
             }
             if (it.name.substringBefore("_") == "effect") {
                 val effect = Gson().fromJson(String(it.inputStream.readBytes()), Effect().javaClass)
