@@ -4,7 +4,6 @@ import com.audiogram.videogenerator.utility.TextAlignment
 
 class LemonMeta {
     lateinit var video: Video
-    lateinit var waveform: Waveform
     lateinit var tracker: AudioTracker
 }
 
@@ -72,17 +71,19 @@ class Video {
     val fill: String? = null
     var width: Double? = null
     var height: Double? = null
-    var waterMark: Boolean? = null
-    var waterMarkType: AudioGramWaterMark? = null
 }
 
 class Waveform {
     var type: AudioGramWaveformType? = null
-    var fill_1: String? = null
-    var fill_2: String? = null
-    var fill_3: String? = null
-    var stroke: String? = null
     var design: AudioGramWaveformDesign? = null
+    var fillMode: FillMode? = null
+    var fill1: String? = null
+    var fill2: String? = null
+    var fill3: String? = null
+    var stroke: Boolean? = null
+    var strokeFill: String? = null
+    var strokeWidth: Double? = null
+    var strokeOpacity: Int? = null
     var width: Double? = null
     var height: Double? = null
     var posX: Double? = null
@@ -104,3 +105,6 @@ class Point(x: Double, y: Double) {
     val x = x
     val y = y
 }
+
+
+

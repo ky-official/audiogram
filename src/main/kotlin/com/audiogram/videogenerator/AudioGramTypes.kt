@@ -1,7 +1,7 @@
 package com.audiogram.videogenerator
 
 enum class AudioGramWaveformDesign {
-    DEFAULT, SPECTRAL_FLUX, FRINGE, ARC_REACTOR
+    DEFAULT, SPECTRAL_FLUX, ARC_REACTOR, SPECTROGRAM, MORPH_STACK, PELICAN_GRID, RAIN_BARS
 }
 
 enum class AudioGramWaveformType {
@@ -17,15 +17,11 @@ enum class AudioGramFrameType {
 }
 
 enum class AudioGramFontWeight {
-    NONE, THIN, NORMAL, BOLD
+    THIN, NORMAL, BOLD
 }
 
 enum class AudioGramFontStyle {
-    NONE, ITALIC
-}
-
-enum class AudioGramWaterMark {
-    LIGHT, DARK
+    ITALIC
 }
 
 enum class AudioGramSpacing {
@@ -33,7 +29,7 @@ enum class AudioGramSpacing {
 }
 
 enum class AudioGramImageAlign {
-    NONE, CENTER, LEFT, RIGHT
+    CENTER, LEFT, RIGHT
 }
 
 enum class AudioGramScaleMode {
@@ -41,11 +37,11 @@ enum class AudioGramScaleMode {
 }
 
 enum class AudioGramAudioTrackerType {
-    BOX_BORDER, HORIZONTAL_BAR
+    HORIZONTAL_BAR
 }
 
 enum class AudioGramEffectType {
-    PARTICLE, DISTORTION, VINYL
+    PARTICLE
 }
 
 enum class AudioGramEffectMode {
@@ -62,4 +58,8 @@ enum class AudioGramFilterType {
 
 enum class AudioGramImageEffect {
     NONE, BLUR, JITTER, MONOCHROME
+}
+
+enum class FillMode {
+    MONO, GRADIENT_MID, GRADIENT_LR, GRADIENT_RL, TRIAD
 }

@@ -12,6 +12,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MimeType
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Mono
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
@@ -39,14 +40,14 @@ class MainController {
 
     @GetMapping("/progress/{id}")
     @CrossOrigin
-    fun progressController(@PathVariable id: String): Int {//Mono<Int>
-        return 30//AudioGramDBManager.getProgress(id)
+    fun progressController(@PathVariable id: String): Mono<Int> {
+        return AudioGramDBManager.getProgress(id)
     }
 
     @GetMapping("/status/{id}")
     @CrossOrigin
     fun statusController(@PathVariable id: String): String {
-        return ""//AudioGramDBManager.getStatus(id)
+        return AudioGramDBManager.getStatus(id)
     }
 
     @GetMapping("/")

@@ -25,44 +25,44 @@ class AudioGramShapeRenderer {
                         g2d.draw(box)
 
 
-                        var color = Color.decode(shape.fill)
+                        val color = Color.decode(shape.fill)
                         g2d.color = Color(color.red, color.green, color.blue, (255 * (shape.opacity!! / 100.0)).toInt())
                         g2d.fill(box)
                         g2d.stroke = BasicStroke(0f)
                         shapeCount++
                     } else {
-                        var color = Color.decode(shape.fill)
+                        val color = Color.decode(shape.fill)
                         g2d.color = Color(color.red, color.green, color.blue, (255 * (shape.opacity!! / 100.0)).toInt())
                         g2d.fill(box)
                         shapeCount++
                     }
                 }
                 AudioGramShapeType.CIRCLE -> {
-                    var ellipse = Ellipse2D.Double(shape.posX!!.toDouble(), shape.posY!!.toDouble(), shape.width!!.toDouble(), shape.height!!.toDouble())
+                    val ellipse = Ellipse2D.Double(shape.posX!!.toDouble(), shape.posY!!.toDouble(), shape.width!!.toDouble(), shape.height!!.toDouble())
                     if (shape.outline!!) {
                         g2d.color = Color.decode(shape.outlineColor)
                         g2d.stroke = BasicStroke(shape.outlineWidth!!.toFloat())
                         g2d.draw(ellipse)
-                        var color = Color.decode(shape.fill)
+                        val color = Color.decode(shape.fill)
                         g2d.color = Color(color.red, color.green, color.blue, (255 * (shape.opacity!! / 100.0)).toInt())
                         g2d.fill(ellipse)
                         g2d.stroke = BasicStroke(0f)
                         shapeCount++
                     } else {
-                        var color = Color.decode(shape.fill)
+                        val color = Color.decode(shape.fill)
                         g2d.color = Color(color.red, color.green, color.blue, (255 * (shape.opacity!! / 100.0)).toInt())
                         g2d.fill(ellipse)
                         shapeCount++
                     }
                 }
                 AudioGramShapeType.LINE -> {
-                    var x1 = shape.posX!!.toDouble()
-                    var x2 = shape.posX!!.toDouble() + shape.width!!.toDouble()
-                    var y1 = shape.posY!!.toDouble()
-                    var y2 = shape.posY!!.toDouble()
+                    val x1 = shape.posX!!.toDouble()
+                    val x2 = shape.posX!!.toDouble() + shape.width!!.toDouble()
+                    val y1 = shape.posY!!.toDouble()
+                    val y2 = shape.posY!!.toDouble()
 
-                    var line = Line2D.Double(x1, y1, x2, y2)
-                    var color = Color.decode(shape.fill)
+                    val line = Line2D.Double(x1, y1, x2, y2)
+                    val color = Color.decode(shape.fill)
                     g2d.color = Color(color.red, color.green, color.blue, (255 * (shape.opacity!! / 100.0)).toInt())
                     g2d.stroke = BasicStroke(shape.outlineWidth!!.toFloat())
                     g2d.draw(line)
@@ -77,9 +77,9 @@ class AudioGramShapeRenderer {
 
 
     fun drawVectorShape(shape: Shape, g2d: Graphics2D) {
-        var diagram = universe.getDiagram(universe.loadSVG(shape.svg!!.byteInputStream(StandardCharsets.UTF_8), "shape_${++shapeCount}"))
+        val diagram = universe.getDiagram(universe.loadSVG(shape.svg!!.byteInputStream(StandardCharsets.UTF_8), "shape_${++shapeCount}"))
 
-        var svgBuffer = BufferedImage(diagram.width.toInt(), diagram.height.toInt(), BufferedImage.TYPE_INT_ARGB)
+        val svgBuffer = BufferedImage(diagram.width.toInt(), diagram.height.toInt(), BufferedImage.TYPE_INT_ARGB)
         var g2dSvgBuffer = svgBuffer.createGraphics()
         AudioGramRenderer.applyQualityRenderingHints(g2dSvgBuffer)
         g2dSvgBuffer.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, (shape.opacity!! / 100f))

@@ -16,8 +16,8 @@ sealed class AudioGramDBManager {
 
         private lateinit var conn: Connection
         private lateinit var statement: Statement
-        private const val URL = "jdbc:h2:./db/LemonDatabase"
-        private const val DRIVER = "org.h2.Driver"
+        private const val URL = "jdbc:sqlserver://35.223.32.43:1433;" + "database=TASKS;" + "user=sqlserver;" + "password=olubunmi;"
+        private const val DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
 
         fun connect() {
             try {
@@ -43,7 +43,7 @@ sealed class AudioGramDBManager {
         fun addTask(id: String) {
             connect()
             try {
-                statement.execute("INSERT INTO TASKS VALUES ('$id','QUEUED',0,CURRENT_TIMESTAMP())")
+                statement.execute("INSERT INTO TASKS VALUES ('$id','QUEUED',0,CURRENT_TIMESTAMP)")
                 println("New task added with id:$id")
                 close()
             } catch (e: SQLException) {

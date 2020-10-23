@@ -34,44 +34,52 @@ class EffectsManager(data: AudioGramData) {
     }
 }
 
-private class ParticleEffect(data: Effect) : CanRender {
+private class ParticleEffect(var data: Effect) : CanRender {
 
     var particles = ArrayList<Particle>()
-    var data = data
 
     override fun render(g2d: Graphics2D) {
+        when (data.effectMode) {
 
-        for (i in 0 until 100 - particles.size) {
-            particles.add(Particle(data))
-        }
+            AudioGramEffectMode.DEFAULT -> {
+                for (i in 0 until 100 - particles.size) {
+                    particles.add(Particle(data))
+                }
 
-        var it = particles.iterator()
-        while (it.hasNext()) {
-            var p = it.next()
-            if (p.lifespan < 0)
-                it.remove()
-            else {
-                p.draw(g2d)
-                p.tick(0)
+                var it = particles.iterator()
+                while (it.hasNext()) {
+                    var p = it.next()
+                    if (p.lifespan < 0)
+                        it.remove()
+                    else {
+                        p.draw(g2d)
+                        p.tick(0)
+                    }
+                }
             }
         }
     }
 
     override fun render(ampData: ArrayList<FloatArray>, currentPoint: Int, g2d: Graphics2D) {
 
-        for (i in 0 until 1000 - particles.size) {
-            particles.add(Particle(data))
-        }
-        var vel = (ampData[currentPoint][0] + ampData[currentPoint][1]) / 20
+        when (data.effectMode) {
 
-        var it = particles.iterator()
-        while (it.hasNext()) {
-            var p = it.next()
-            if (p.lifespan < 0)
-                it.remove()
-            else {
-                p.draw(g2d)
-                p.tick(vel.toInt())
+            AudioGramEffectMode.DEFAULT -> {
+                for (i in 0 until 1000 - particles.size) {
+                    particles.add(Particle(data))
+                }
+                var vel = (ampData[currentPoint][0] + ampData[currentPoint][1]) / 10
+
+                var it = particles.iterator()
+                while (it.hasNext()) {
+                    var p = it.next()
+                    if (p.lifespan < 0)
+                        it.remove()
+                    else {
+                        p.draw(g2d)
+                        p.tick(vel.toInt())
+                    }
+                }
             }
         }
     }

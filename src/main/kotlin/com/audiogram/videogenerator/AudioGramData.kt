@@ -25,13 +25,14 @@ class AudioGramData {
         private set
     var texts: ArrayList<LemonText> = ArrayList()
         private set
+    var waveforms: ArrayList<Waveform> = ArrayList()
+        private set
     var effects: ArrayList<Effect> = ArrayList()
         private set
     var trackLength: Double? = null
 
 
     fun initialize(data: Collection<Part>) {
-
 
         data.forEach {
             if (it.name == "id") {
@@ -64,11 +65,15 @@ class AudioGramData {
             if (it.name.substringBefore("_") == "text") {
                 val text = Gson().fromJson(String(it.inputStream.readBytes()), LemonText().javaClass)
                 this.texts.add(text)
-                //AudioGramRenderer.loadApplicationFonts()
+                // AudioGramRenderer.loadApplicationFonts()
             }
             if (it.name.substringBefore("_") == "effect") {
                 val effect = Gson().fromJson(String(it.inputStream.readBytes()), Effect().javaClass)
                 this.effects.add(effect)
+            }
+            if (it.name.substringBefore("_") == "waveform") {
+                val waveform = Gson().fromJson(String(it.inputStream.readBytes()), Waveform().javaClass)
+                this.waveforms.add(waveform)
             }
             if (it.name == "meta") {
                 val meta = Gson().fromJson(String(it.inputStream.readBytes()), LemonMeta().javaClass)
@@ -76,7 +81,7 @@ class AudioGramData {
             }
 
         }
-        //AudioGramDBManager.addTask(this.id)
+        AudioGramDBManager.addTask(this.id)
     }
 
 }

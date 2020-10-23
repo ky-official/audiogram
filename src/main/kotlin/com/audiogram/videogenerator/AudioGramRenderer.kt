@@ -1,18 +1,22 @@
 package com.audiogram.videogenerator
 
+import com.audiogram.videogenerator.utility.ShadowFactory
 import com.audiogram.videogenerator.utility.TextFormat
 import com.audiogram.videogenerator.utility.TextRenderer
+import com.google.cloud.storage.Storage
+import com.google.cloud.storage.StorageOptions
+import com.jhlabs.image.GrayscaleFilter
+import com.jhlabs.image.NoiseFilter
 import com.twelvemonkeys.image.ConvolveWithEdgeOp
 import com.xuggle.mediatool.IMediaWriter
 import org.imgscalr.Scalr
 import java.awt.*
 import java.awt.RenderingHints
+import java.awt.Shape
 import java.awt.font.TextAttribute
-import java.awt.geom.AffineTransform
-import java.awt.geom.Area
-import java.awt.geom.Ellipse2D
-import java.awt.geom.RoundRectangle2D
+import java.awt.geom.*
 import java.awt.image.BufferedImage
+import java.awt.image.ColorModel
 import java.awt.image.Kernel
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -20,26 +24,25 @@ import javax.imageio.ImageIO
 import kotlin.math.*
 
 
-class AudioGramRenderer {
+class AudioGramRenderer(private val freqAmpData: ArrayList<FloatArray>, private val sigAmpData: ArrayList<FloatArray>, private val data: AudioGramData, private val writer: IMediaWriter) {
 
-    fun start(data: AudioGramData, writer: IMediaWriter, ampData: ArrayList<FloatArray>) {
+    fun start() {
 
         System.getProperties().setProperty("sun.java2d.opengl", "true")
         System.getProperties().setProperty("sun.java2d.accthreshold", "0")
 
-        var points = ampData.size
+        val points = freqAmpData.size
         var index = 1
         var progress = 0
         var currentPoint = 0
 
         val staticImage = createStaticRenderedImage(data)
         val bufferedImage = BufferedImage(data.meta.video.width!!.toInt(), data.meta.video.height!!.toInt(), BufferedImage.TYPE_3BYTE_BGR)
-        val g2d = bufferedImage.createGraphics()
-        applyQualityRenderingHints(g2d)
+        val g2d = bufferedImage.createGraphics().also { applyQualityRenderingHints(it) }
 
         var audioGramFrameGrabber: AudioGramFrameGrabber? = null
-        var plotter = AudioGramPlotter().getPlotter(data)
-        var effectsManager = EffectsManager(data)
+        val plotters = AudioGramPlotter().getPlotters(data)
+        val effectsManager = EffectsManager(data)
 
         if (data.videoUrl != null)
             audioGramFrameGrabber = AudioGramFrameGrabber(data, 30)
@@ -50,34 +53,38 @@ class AudioGramRenderer {
             Thread.sleep(0)
             if (currentPoint < points) {
 
-                g2d.clearRect(0, 0, data.meta.video.width!!.toInt(), data.meta.video.height!!.toInt())
-                val trackProgress = (currentPoint / points.toDouble()) * 100
 
+                val trackProgress = (currentPoint / points.toDouble()) * 100
                 if (trackProgress.roundToInt() != progress) {
                     println("task with id:${data.id} at $progress%")
                     progress = trackProgress.roundToInt()
-                    // AudioGramDBManager.updateProgress(data.id, progress)
+                    AudioGramDBManager.updateProgress(data.id, progress)
                 }
 
-                if (data.videoUrl != null) {
+                g2d.clearRect(0, 0, data.meta.video.width!!.toInt(), data.meta.video.height!!.toInt())
+                if (data.videoUrl != null)
                     g2d.drawRenderedImage(audioGramFrameGrabber!!.grabNext(), null)
-                }
+
 
                 g2d.drawRenderedImage(staticImage, null)
 
-                if (data.meta.tracker.display!!) {
+                if (data.meta.tracker.display!!)
                     renderTrackProgress(trackProgress, g2d, data.meta.tracker)
+
+                effectsManager.render(freqAmpData, currentPoint, g2d)
+
+                for (plotter in plotters) {
+                    if (plotter.waveform.type == AudioGramWaveformType.SAD)
+                        plotter.plot(sigAmpData, currentPoint, g2d)
+                    else
+                        plotter.plot(freqAmpData, currentPoint, g2d)
                 }
-
-                effectsManager.render(ampData, currentPoint, g2d)
-                plotter(data, ampData, currentPoint, g2d)
-
                 currentPoint++
                 index++
 
                 writer.encodeVideo(0, bufferedImage, (33333333.3 * index).roundToLong(), TimeUnit.NANOSECONDS)
                 bufferedImage.flush()
-                //writer.flush()
+
 
             } else break
         }
@@ -85,8 +92,8 @@ class AudioGramRenderer {
         writer.flush()
         Runtime.getRuntime().gc()
         System.gc()
-        // AudioGramDBManager.updateProgress(data.id, 100)
-        //  AudioGramDBManager.updateStatus(data.id, "FINISHED")
+        AudioGramDBManager.updateProgress(data.id, 100)
+        AudioGramDBManager.updateStatus(data.id, "FINISHED")
         println("writer closed")
 
     }
@@ -94,9 +101,9 @@ class AudioGramRenderer {
     private fun renderTrackProgress(percent: Double, g2d: Graphics2D, meta: AudioTracker) {
         when (meta.type) {
             AudioGramAudioTrackerType.HORIZONTAL_BAR -> {
-                var bar = RoundRectangle2D.Double(meta.posX!!, meta.posY!!, meta.length!! * (percent / 100), 10.0, 0.0, 0.0)
-                var color = Color.decode(meta.fill)
-                var opacity = (255 * (meta.opacity!! / 100.0)).toInt()
+                val bar = RoundRectangle2D.Double(meta.posX!!, meta.posY!!, meta.length!! * (percent / 100), 10.0, 0.0, 0.0)
+                val color = Color.decode(meta.fill)
+                val opacity = (255 * (meta.opacity!! / 100.0)).toInt()
 
                 g2d.color = Color(color.red, color.green, color.blue, opacity)
                 g2d.fill(bar)
@@ -124,8 +131,23 @@ class AudioGramRenderer {
 
             if (image.imageEffect != AudioGramImageEffect.NONE) {
                 when (image.imageEffect) {
+
                     AudioGramImageEffect.BLUR -> {
                         source = blurImage(source)
+                    }
+                    AudioGramImageEffect.MONOCHROME -> {
+                        var effect = GrayscaleFilter()
+                        val dest = effect.createCompatibleDestImage(source, ColorModel.getRGBdefault())
+                        effect.filter(source, dest)
+                        source = dest
+                        dest.flush()
+                    }
+                    AudioGramImageEffect.JITTER -> {
+                        var effect = NoiseFilter()
+                        val dest = effect.createCompatibleDestImage(source, ColorModel.getRGBdefault())
+                        effect.filter(source, dest)
+                        source = dest
+                        dest.flush()
                     }
                 }
             }
@@ -218,10 +240,10 @@ class AudioGramRenderer {
 
     private fun screenImage(source: BufferedImage, fill: String) {
 
-        var g2d = source.createGraphics()
-        var screen = Rectangle(0, 0, source.width, source.height)
-        var fill = Color.decode(fill)
-        var opacity = (255 * (50 / 100.0)).toInt()
+        val g2d = source.createGraphics()
+        val screen = Rectangle(0, 0, source.width, source.height)
+        val fill = Color.decode(fill)
+        val opacity = (255 * (50 / 100.0)).toInt()
 
         g2d.color = Color(fill.red, fill.green, fill.blue, opacity)
         g2d.fill(screen)
@@ -294,10 +316,10 @@ class AudioGramRenderer {
 
     private fun maskImageToCircle(img: BufferedImage): BufferedImage {
 
-        var width = img.width
-        var height = img.height
+        val width = img.width
+        val height = img.height
         var diameter = 0
-        var oval: Area? = null
+        var oval: Area?
         diameter = if (width > height || width == height) {
             height
         } else {
@@ -319,7 +341,10 @@ class AudioGramRenderer {
 
     companion object {
 
+        private val factory1 = ShadowFactory(5, 1f, Color.white)
+        private val factory2 = ShadowFactory(5, 1f, Color.white)
         private var loadedAppFont = false
+
         fun applyQualityRenderingHints(g2d: Graphics2D) {
             g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -333,13 +358,20 @@ class AudioGramRenderer {
         }
 
         fun loadApplicationFonts() {
+
             if (!loadedAppFont) {
                 try {
                     val graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment()
-                    var fontDir = File("src/main/kotlin/com/audiogram/videogenerator/resources/fonts")
-                    for (fontFile in fontDir.listFiles()!!) {
-                        val font = Font.createFont(Font.TRUETYPE_FONT, fontFile)
-                        graphicsEnvironment.registerFont(font)
+                    val storage = StorageOptions.newBuilder().setProjectId("audiogram-292422").build().service
+                    val blobs = storage.list("audiogram_resources", Storage.BlobListOption.prefix("fonts/"))
+
+                    for (f in blobs.iterateAll()) {
+                        if (f.name.substringAfter("/") != "") {
+                            var file = File("${AudioGramFileManager.ROOT}/${f.name}")
+                            file.createNewFile()
+                            f.downloadTo(file.toPath())
+                            graphicsEnvironment.registerFont(Font.createFont(Font.TRUETYPE_FONT, file))
+                        }
                     }
                     loadedAppFont = true
                 } catch (e: Exception) {
@@ -347,6 +379,162 @@ class AudioGramRenderer {
                 }
             }
         }
+
+        fun drawCurve(points: java.util.ArrayList<Point>, path: GeneralPath, inBend: Int, outBend: Int) {
+
+            /*control points*/
+            var cpOneX: Double
+            var cpOneY: Double
+            var cpTwoX: Double
+            var cpTwoY: Double
+
+            path.moveTo(points[0].x, points[0].y)
+            for (point in 1 until points.size) {
+
+                val cpx = points[point].x
+                val cpy = points[point].y
+
+
+                if (point == 1) {
+
+                    //sp will be the same as move coordinates
+
+                    val spx = points[0].x
+                    val spy = points[0].y
+
+                    val npx = points[2].x
+                    val npy = points[2].y
+
+                    cpOneX = spx + (cpx - spx) / outBend
+                    cpOneY = spy + (cpy - spy) / inBend
+
+                    cpTwoX = cpx - (npx - spx) / outBend
+                    cpTwoY = cpy - (npy - spy) / inBend
+
+                    path.curveTo(cpOneX, cpOneY, cpTwoX, cpTwoY, cpx, cpy)
+
+                } else if (point > 1 && point <= points.size - 2) {
+
+                    var pp0x: Double
+                    var pp0y: Double
+
+                    if (point == 2) {
+                        pp0x = points[0].x
+                        pp0y = points[0].y
+                    } else {
+                        pp0x = points[point - 2].x
+                        pp0y = points[point - 2].y
+                    }
+
+                    val ppx = points[point - 1].x
+                    val ppy = points[point - 1].y
+
+                    val npx = points[point + 1].x
+                    val npy = points[point + 1].y
+
+                    cpOneX = ppx + (cpx - pp0x) / outBend
+                    cpOneY = ppy + (cpy - pp0y) / inBend
+
+                    cpTwoX = cpx - (npx - ppx) / outBend
+                    cpTwoY = cpy - (npy - ppy) / inBend
+
+                    path.curveTo(cpOneX, cpOneY, cpTwoX, cpTwoY, cpx, cpy)
+
+                } else {
+                    val pp0x = points[point - 2].x
+                    val pp0y = points[point - 2].y
+
+                    val ppx = points[point - 1].x
+                    val ppy = points[point - 1].y
+
+
+
+                    cpOneX = ppx + (cpx - pp0x) / outBend
+                    cpOneY = ppy + (cpy - pp0y) / inBend
+
+                    cpTwoX = cpx - (cpx - ppx) / outBend
+                    cpTwoY = cpy - (cpy - ppy) / inBend
+
+                    path.curveTo(cpOneX, cpOneY, cpTwoX, cpTwoY, cpx, cpy)
+
+                }
+            }
+        }
+
+        fun fillGradient(g2d: Graphics2D, shape: Shape, fill1: Color, fill2: Color, fill3: Color?, mode: Int) {
+
+            var shapePath = GeneralPath(shape)
+            var x = shapePath.bounds.x.toFloat()
+            var y = shapePath.bounds.y.toFloat()
+            var height = shapePath.bounds.height
+            var width = shapePath.bounds.width
+
+            var gradientPaint: GradientPaint = GradientPaint(0f, 0f, fill1, 0f, 0f, fill2)
+
+            if (fill3 == null) {
+
+                when (mode) {
+                    1 -> gradientPaint = GradientPaint(x + width / 2, y, fill1, x + width / 2, y + height, fill2)
+                    2 -> gradientPaint = GradientPaint(x, y, fill1, x + width, y + height, fill2)
+                    3 -> gradientPaint = GradientPaint(x + width, y, fill1, x, y + height, fill2)
+
+                }
+
+            } else {
+                when (mode) {
+                    1 -> {
+                        g2d.paint = GradientPaint(x + width / 2, y, fill1, x + width / 2, y + height * 0.66f, fill2)
+                        g2d.fill(shape)
+                        gradientPaint = GradientPaint(x + width / 2, y + height * 0.66f, Color(fill2.red, fill2.green, fill2.blue, 0), x + width / 2, y + height, fill3)
+                    }
+                    2 -> {
+                        g2d.paint = GradientPaint(x, y, fill1, x + width, y + height * 0.66f, fill2)
+                        g2d.fill(shape)
+                        gradientPaint = GradientPaint(x + width, y + height * 0.66f, Color(fill2.red, fill2.green, fill2.blue, 0), x, y + height, fill3)
+                    }
+                    3 -> {
+                        g2d.paint = GradientPaint(x + width, y, fill1, x, y + height * 0.66f, fill2)
+                        g2d.fill(shape)
+                        gradientPaint = GradientPaint(x, y + height * 0.66f, Color(fill2.red, fill2.green, fill2.blue, 0), x + width, y + height, fill3)
+                    }
+                }
+            }
+
+            g2d.paint = gradientPaint
+            g2d.fill(shape)
+        }
+
+        fun generateGlow(shape: Shape, g2: Graphics2D, color: Color, size: Int, opacity: Float) {
+
+
+            val x = shape.bounds.x.toDouble()
+            val y = shape.bounds.y.toDouble()
+
+            val shape2 = GeneralPath(shape)
+            shape2.transform(AffineTransform.getTranslateInstance(-x, -y))
+
+            val buffer = BufferedImage(shape2.bounds.width, shape2.bounds.height, BufferedImage.TYPE_INT_ARGB)
+            val graphics2D = buffer.createGraphics()
+
+            graphics2D.color = color
+            graphics2D.stroke = BasicStroke(5f)
+            graphics2D.fill(shape2)
+
+            factory1.color = Color.white
+            factory1.opacity = opacity
+            factory1.size = size
+
+            factory2.color = color
+            factory2.size = size
+
+            val glowLayer = factory2.createShadow(AudioGramRenderer.factory1.createShadow(buffer))
+            val deltaX = x - (glowLayer.width - shape.bounds.width) / 2.0
+            val deltaY = y - (glowLayer.height - shape.bounds.height) / 2.0
+
+            g2.drawImage(glowLayer, AffineTransform.getTranslateInstance(deltaX, deltaY), null)
+
+        }
+
     }
 
 }

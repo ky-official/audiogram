@@ -18,7 +18,7 @@ import javax.servlet.http.Part
 sealed class AudioGramFileManager {
 
     companion object {
-        private const val ROOT = "/tmp"
+        const val ROOT = "/tmp"
 
         fun createTaskDirectory(id: String) {
             val taskDirectory = File("$ROOT/tasks/task_$id")
@@ -67,8 +67,8 @@ sealed class AudioGramFileManager {
         }
 
         fun createVideoContainer(id: String): String {
-            var path: String = "$ROOT/tasks/task_$id/export/video.mp4"
-            var videoContainer = File(path)
+            val path = "$ROOT/tasks/task_$id/export/video.mp4"
+            val videoContainer = File(path)
             videoContainer.createNewFile()
             return path
         }
@@ -87,14 +87,14 @@ sealed class AudioGramFileManager {
 
         fun saveResource(type: String, id: String, resource: Part): String? {
 
-            var filePath: Path
+            val filePath: Path
             try {
                 when (type) {
                     "audio" -> {
-                        var path: String = "$ROOT/tasks/task_$id/resources/audio"
+                        val path = "$ROOT/tasks/task_$id/resources/audio"
                         filePath = Paths.get(path, "audio.${resource.submittedFileName.substringAfterLast(".")}")
                         try {
-                            var os = Files.newOutputStream(filePath)
+                            val os = Files.newOutputStream(filePath)
                             os.write(resource.inputStream.readBytes())
                             os.close()
                             return filePath.toString()
@@ -103,10 +103,10 @@ sealed class AudioGramFileManager {
                         }
                     }
                     "image" -> {
-                        var path: String = "$ROOT/tasks/task_$id/resources/images"
+                        val path = "$ROOT/tasks/task_$id/resources/images"
                         filePath = Paths.get(path, "${resource.name}.${resource.contentType.substringAfter("/")}")
                         try {
-                            var os = Files.newOutputStream(filePath)
+                            val os = Files.newOutputStream(filePath)
                             os.write(resource.inputStream.readBytes())
                             os.close()
                             return filePath.toString()
@@ -115,10 +115,10 @@ sealed class AudioGramFileManager {
                         }
                     }
                     "video" -> {
-                        var path: String = "$ROOT/tasks/task_$id/resources/video"
+                        val path = "$ROOT/tasks/task_$id/resources/video"
                         filePath = Paths.get(path, "video.${resource.submittedFileName.substringAfterLast(".")}")
                         try {
-                            var os = Files.newOutputStream(filePath)
+                            val os = Files.newOutputStream(filePath)
                             os.write(resource.inputStream.readBytes())
                             os.close()
                             return filePath.toString()
